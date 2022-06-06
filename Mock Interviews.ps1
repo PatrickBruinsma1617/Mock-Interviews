@@ -28,18 +28,19 @@ if (($filters.VideoInputDevices) -and ($filters.AudioInputDevices)) {
     $defaultQuestions = Get-ChildItem -Path "$documents\Mock Interviews\Questions\*" -Include *.txt
     Write-host ''
     Write-Host "Default question files can be saved to $documents\Mock Interviews\Questions\" -ForegroundColor Yellow
-    if ($defaultQuestions.Name.Count -gt 0){        
+    if ($defaultQuestions.Name.Count -gt 0) {        
         $f = 1
-        foreach ($file in $defaultQuestions.Name){
+        foreach ($file in $defaultQuestions.Name) {
             Write-Host "$f`: $file" -ForegroundColor Yellow
             $f++
         }
     }
     $questionsPath = Read-Host 'Enter the file path for the .txt file containing the interview questions or select one of the defaults above. (1 question per line)'
-    if ($questionsPath -match "^[\d\.]+$"){
-        if ($defaultQuestions.Name.Count -eq 1){
+    if ($questionsPath -match "^[\d\.]+$") {
+        if ($defaultQuestions.Name.Count -eq 1) {
             $questionsPath = "$documents\Mock Interviews\Questions\" + $defaultQuestions.Name
-        } else {
+        }
+        else {
             $questionsPath = "$documents\Mock Interviews\Questions\" + $defaultQuestions.Name[[int]$questionsPath - 1]
         }
     }
@@ -93,82 +94,86 @@ if (($filters.VideoInputDevices) -and ($filters.AudioInputDevices)) {
         }
         New-Item -ItemType Directory -Path $folderName | Out-Null
         New-Item -ItemType file -Path "$folderName\Questions.txt" | Out-Null
-        $qMessage =  ($questions.Count).ToString() + " questions were found and randomly arranged."
+        $qMessage = ($questions.Count).ToString() + " questions were found and randomly arranged."
         Write-Host ''
         Write-Host $qMessage -ForegroundColor Yellow
         [int]$numQuestions = Read-Host 'How many questions do you want the interview to include?'
-    }
+    
 
-    $q = 1
-    $questions = $questions | Sort-Object { Get-Random }
-    foreach ($question in $questions) {
-        if ($q -le $numQuestions) {
-            Add-Content -Path "$folderName\Questions.txt" -Value "$q. $question" | Out-Null
-            Write-Host ''
-            Write-Host $question -ForegroundColor Magenta
-            $VideoCapture = New-Object DirectX.Capture.Capture -ArgumentList $VideoInput, $AudioInput
-            $questionName = $question
-            if ($questionName.length -gt 248) {
-                $questionName = $questionName.Substring(0, 248)
-            }
-            $questionName = "($q) - $questionName"
-            $questionName = $questionName.Replace("'", '')
-            $questionName = $questionName.Split([IO.Path]::GetInvalidFileNameChars()) -join ''
-            $OutPath = "$folderName\$questionName.avi"
-            $VideoCapture.Filename = $OutPath
-            $Compression = $filters.VideoCompressors[0]
-            if ($Compression) {
-                $VideoCapture.VideoCompressor = $Compression
-            }
-            #Start the video capture
-            try {
-                if ($previewOrRecord -eq 1 -or $previewOrRecord -eq 3) {
-                    Write-Host 'Press enter key to continue…' -ForegroundColor Yellow
-                    $form = New-Object System.Windows.Forms.Form -Property @{TopMost = $true }
-                    $form.Text = $question
-                    $form.Size = New-Object System.Drawing.Size(1280, 720)
-                    $form.StartPosition = 'CenterScreen'
-                    $VideoCapture.PreviewWindow = $form;
-                    if ($previewOrRecord -eq 3) {
-                        $VideoCapture.Start() | Out-Null
-                    }
-                    $OKButton = New-Object System.Windows.Forms.Button
-                    $OKButton.Location = New-Object System.Drawing.Point(75, 120)
-                    $OKButton.Size = New-Object System.Drawing.Size(0, 0)
-                    $OKButton.Text = 'OK'
-                    $OKbutton.Add_Click({
-                            if ($OKbutton.DialogResult = [System.Windows.Forms.DialogResult]::OK) {
-                                if ($previewOrRecord -eq 3) {
-                                    $VideoCapture.Stop() | Out-Null
+        $q = 1
+        $questions = $questions | Sort-Object { Get-Random }
+        foreach ($question in $questions) {
+            if ($q -le $numQuestions) {
+                Add-Content -Path "$folderName\Questions.txt" -Value "$q. $question" | Out-Null
+                Write-Host ''
+                Write-Host $question -ForegroundColor Magenta
+                $VideoCapture = New-Object DirectX.Capture.Capture -ArgumentList $VideoInput, $AudioInput
+                $questionName = $question
+                if ($questionName.length -gt 248) {
+                    $questionName = $questionName.Substring(0, 248)
+                }
+                $questionName = "($q) - $questionName"
+                $questionName = $questionName.Replace("'", '')
+                $questionName = $questionName.Split([IO.Path]::GetInvalidFileNameChars()) -join ''
+                $OutPath = "$folderName\$questionName.avi"
+                $VideoCapture.Filename = $OutPath
+                $Compression = $filters.VideoCompressors[0]
+                if ($Compression) {
+                    $VideoCapture.VideoCompressor = $Compression
+                }
+                #Start the video capture
+                try {
+                    if ($previewOrRecord -eq 1 -or $previewOrRecord -eq 3) {
+                        Write-Host 'Press enter key to continue…' -ForegroundColor Yellow
+                        $form = New-Object System.Windows.Forms.Form -Property @{TopMost = $true }
+                        $form.Text = $question
+                        $form.Size = New-Object System.Drawing.Size(1280, 720)
+                        $form.StartPosition = 'CenterScreen'
+                        $VideoCapture.PreviewWindow = $form;
+                        if ($previewOrRecord -eq 3) {
+                            $VideoCapture.Start() | Out-Null
+                        }
+                        $OKButton = New-Object System.Windows.Forms.Button
+                        $OKButton.Location = New-Object System.Drawing.Point(75, 120)
+                        $OKButton.Size = New-Object System.Drawing.Size(0, 0)
+                        $OKButton.Text = 'OK'
+                        $OKbutton.Add_Click({
+                                if ($OKbutton.DialogResult = [System.Windows.Forms.DialogResult]::OK) {
+                                    if ($previewOrRecord -eq 3) {
+                                        $VideoCapture.Stop() | Out-Null
+                                    }
+                                    $VideoCapture.PreviewWindow = $null;
+                                    $form.Close() | Out-Null
                                 }
-                                $VideoCapture.PreviewWindow = $null;
-                                $form.Close() | Out-Null
-                            }
-                        })
-                    $form.AcceptButton = $OKButton
-                    $form.Controls.Add($OKButton)
-                    $form.ShowDialog() | Out-Null
+                            })
+                        $form.AcceptButton = $OKButton
+                        $form.Controls.Add($OKButton)
+                        $form.ShowDialog() | Out-Null
+                    }
+                    elseif ($previewOrRecord -eq 2) {
+                        $VideoCapture.Start() | Out-Null
+                        $next = Read-Host "Press enter key to continue…"
+                        $VideoCapture.Stop()
+                    }
+                    else {
+                        throw 'Invalid settings configuration'
+                    }
                 }
-                elseif ($previewOrRecord -eq 2) {
-                    $VideoCapture.Start() | Out-Null
-                    $next = Read-Host "Press enter key to continue…"
-                    $VideoCapture.Stop()
+                catch {
+                    Write-host "[!]Unable to start capture" -ForegroundColor Red
+                    $VideoCapture.Stop() | Out-Null
+                    $VideoCapture.PreviewWindow = $null;
+                    break
                 }
-                else {
-                    throw 'Invalid settings configuration'
-                }
+                $q++
             }
-            catch {
-                Write-host "[!]Unable to start capture" -ForegroundColor Red
-                $VideoCapture.Stop() | Out-Null
-                $VideoCapture.PreviewWindow = $null;
-                break
+            else {
+                Add-Content -Path "$folderName\Un-Asked Questions.txt" -Value "$question" | Out-Null
             }
-            $q++
         }
+        Write-Host ''
+        Write-Host "Results saved to $folderName" -ForegroundColor Green
     }
-    Write-Host ''
-    Write-Host "Results saved to $folderName" -ForegroundColor Green
 }
 else {
     Write-Host "[!] Unable to obtain any audio or video input filters" -ForegroundColor Red
